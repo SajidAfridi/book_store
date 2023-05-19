@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "811433327445",
+    "project_id": "book-store-84c54",
+    "storage_bucket": "book-store-84c54.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:811433327445:android:e5c7d040d73eb9ca694ddc",
+        "android_client_info": {
+          "package_name": "com.example.book_zone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "811433327445-tfervv7a5k43sdvpef2qubl5b2sdf9lc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnLg7x3dJcLxshydfsB9x6V5rfmt2CjXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "811433327445-tfervv7a5k43sdvpef2qubl5b2sdf9lc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
