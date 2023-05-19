@@ -1,122 +1,54 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../classes/event.dart';
-import '../utils/app_colors.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final Event event;
 
   const EventDetailsScreen({Key? key, required this.event}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Event Details'),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(16.0.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
-                  event.bookName,
-                  style: TextStyle(
-                    fontSize: 40.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colours.themeColor,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'By ${event.authorName}',
-                style: const TextStyle(
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 16),
-              AttributeText(
-                attributeName: 'Last Date:',
-                attributeValue: event.lastDate,
-              ),
-              const SizedBox(height: 16),
-              AttributeText(
-                attributeName: 'Place:',
-                attributeValue: event.place,
-              ),
-              const SizedBox(height: 16),
-              AttributeText(
-                attributeName: 'Number of Seats:',
-                attributeValue: event.numSeats.toString(),
-              ),
-              const SizedBox(height: 16),
-              const SizedBox(height: 16),
-              buildRegistrationButtons(context),
-            ],
-          ),
-        ),
-      ),
-    );
+  _EventDetailsScreenState createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  bool isRegistered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    checkRegistrationStatus();
   }
 
-  Widget buildRegistrationButtons(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('Events').doc(event.eventNo).snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
+  Future<void> checkRegistrationStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
+    final registeredUsersRef = FirebaseFirestore.instance
+        .collection('Events')
+        .doc(widget.event.eventNo)
+        .collection('registered_users');
 
-        final eventSnapshot = snapshot.data;
-        final registeredUsers = List<String>.from(eventSnapshot!['registeredUsers']);
-        final bool isRegistered = registeredUsers.contains(FirebaseAuth.instance.currentUser?.uid);
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(
-              onPressed: isRegistered
-                  ? () {
-                unregisterEvent(context);
-              }
-                  : () {
-                registerEvent(context);
-              },
-              child: Text(
-                isRegistered ? 'Unregister' : 'Register',
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Go Back'),
-            ),
-          ],
-        );
-      },
-    );
+    final snapshot = await registeredUsersRef.doc(user.uid).get();
+    setState(() {
+      isRegistered = snapshot.exists;
+    });
   }
 
   Future<void> registerEvent(BuildContext context) async {
-    final registeredUsersRef =
-    FirebaseFirestore.instance.collection('Events').doc(event.eventNo).collection('registered_users');
     final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final registeredUsersRef = FirebaseFirestore.instance
+        .collection('Events')
+        .doc(widget.event.eventNo)
+        .collection('registered_users');
 
     try {
       // Check if the user is already registered
-      final snapshot = await registeredUsersRef.doc(user!.uid).get();
+      final snapshot = await registeredUsersRef.doc(user.uid).get();
       if (snapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -132,6 +64,11 @@ class EventDetailsScreen extends StatelessWidget {
 
       // Register the user
       await registeredUsersRef.doc(user.uid).set({});
+
+      setState(() {
+        isRegistered = true;
+        widget.event.numSeats--;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -156,13 +93,17 @@ class EventDetailsScreen extends StatelessWidget {
   }
 
   Future<void> unregisterEvent(BuildContext context) async {
-    final registeredUsersRef =
-    FirebaseFirestore.instance.collection('Events').doc(event.eventNo).collection('registered_users');
     final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final registeredUsersRef = FirebaseFirestore.instance
+        .collection('Events')
+        .doc(widget.event.eventNo)
+        .collection('registered_users');
 
     try {
       // Check if the user is registered
-      final snapshot = await registeredUsersRef.doc(user!.uid).get();
+      final snapshot = await registeredUsersRef.doc(user.uid).get();
       if (!snapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -178,6 +119,12 @@ class EventDetailsScreen extends StatelessWidget {
 
       // Unregister the user
       await registeredUsersRef.doc(user.uid).delete();
+
+      setState(() {
+        isRegistered = false;
+        widget.event.numSeats++;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -191,13 +138,93 @@ class EventDetailsScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Registration failed. Please try again.',
+            'Unregistration failed. Please try again.',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.red,
         ),
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Event Details'),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  widget.event.bookName,
+                  style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'By ${widget.event.authorName}',
+                style: const TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 16),
+              AttributeText(
+                attributeName: 'Last Date:',
+                attributeValue: widget.event.lastDate,
+              ),
+              const SizedBox(height: 16),
+              AttributeText(
+                attributeName: 'Place:',
+                attributeValue: widget.event.place,
+              ),
+              const SizedBox(height: 16),
+              AttributeText(
+                attributeName: 'Number of Seats:',
+                attributeValue: widget.event.numSeats.toString(),
+              ),
+              const SizedBox(height: 16),
+              buildRegistrationButtons(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildRegistrationButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton(
+          onPressed: isRegistered
+              ? () {
+            unregisterEvent(context);
+          }
+              : () {
+            registerEvent(context);
+          },
+          child: Text(
+            isRegistered ? 'Unregister' : 'Register',
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Go Back'),
+        ),
+      ],
+    );
   }
 }
 

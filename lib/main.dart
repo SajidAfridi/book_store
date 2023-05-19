@@ -4,6 +4,7 @@ import 'package:book_zone/screens/event_screen.dart';
 import 'package:book_zone/screens/home_screen.dart';
 import 'package:book_zone/screens/loading_screen.dart';
 import 'package:book_zone/screens/map_screen.dart';
+import 'package:book_zone/screens/monthly_subscription.dart';
 import 'package:book_zone/screens/profile_screen.dart';
 import 'package:book_zone/screens/questionare_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
             'event_screen': (_) => const EventScreen(),
             'book_screen': (_) => const BookListView(),
           },
-          home: const EventScreen(),
+          home: const LoadingPage(),
         );
       },
     );

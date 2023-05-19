@@ -45,6 +45,7 @@ dependencies:
   http: ^0.13.4
   shimmer:
   cached_network_image: ^3.2.3
+  flutter_credit_card:
 
 
 
